@@ -276,7 +276,7 @@
         };
 
         /* =====================================================
-           YOUTUBE MÜZİK (ÖZEL ZAMAN KESİTİ: 138s - 166s)
+           YOUTUBE MÜZİK - KESİNTİSİZ DÖNGÜ (LOOP)
         ===================================================== */
         const musicButton = document.getElementById("musicButton");
         const musicText = document.getElementById("musicText");
@@ -284,6 +284,7 @@
         let youtubePlayer = null;
         let playerReady = false;
         let musicPlaying = false;
+        let loopInterval = null;
 
         window.onYouTubeIframeAPIReady = function () {
             youtubePlayer = new YT.Player("youtubePlayer", {
@@ -295,44 +296,64 @@
                     disablekb: 1,
                     playsinline: 1,
                     rel: 0,
+                    autoplay: 0,
                     start: CONFIG.startTime,
                     end: CONFIG.endTime
                 },
                 events: {
                     onReady(event) {
                         playerReady = true;
-                        event.target.setVolume(85);
+                        event.target.setVolume(90);
                         musicText.textContent = "Çalmak İçin Tıkla";
                     },
                     onStateChange(event) {
                         if (event.data === YT.PlayerState.PLAYING) {
                             musicPlaying = true;
                             musicText.textContent = "Sıla İçin Çalıyor ♫";
+                            startLoopCheck();
                         } else if (event.data === YT.PlayerState.PAUSED) {
                             musicPlaying = false;
                             musicText.textContent = "Çalmak İçin Tıkla";
-                        } else if (event.data === YT.PlayerState.ENDED && youtubePlayer) {
-                            // 166. saniyeye ulaştığında tekrar 138. saniyeden devam et
-                            youtubePlayer.seekTo(CONFIG.startTime, true);
-                            youtubePlayer.playVideo();
+                            stopLoopCheck();
+                        } else if (event.data === YT.PlayerState.ENDED) {
+                            // Şarkı bittiği an hemen 138. saniyeye dön ve çal
+                            restartSnippet();
                         }
                     },
                     onError() {
                         musicPlaying = false;
-                        musicText.textContent = "Şarkı açılamadı";
+                        musicText.textContent = "Müzik açılamadı";
                     }
                 }
             });
         };
 
-        // Sürekli kontrol: 166. saniyeye ulaştığında başa dönsün
-        setInterval(() => {
-            if (youtubePlayer && playerReady && musicPlaying) {
-                if (youtubePlayer.getCurrentTime() >= CONFIG.endTime) {
-                    youtubePlayer.seekTo(CONFIG.startTime, true);
-                }
+        function restartSnippet() {
+            if (youtubePlayer && playerReady) {
+                youtubePlayer.seekTo(CONFIG.startTime, true);
+                youtubePlayer.playVideo();
             }
-        }, 300);
+        }
+
+        // 166. saniyeye ulaşıp ulaşmadığını her 100ms'de bir kontrol et
+        function startLoopCheck() {
+            stopLoopCheck();
+            loopInterval = setInterval(() => {
+                if (youtubePlayer && playerReady && musicPlaying) {
+                    const currentTime = youtubePlayer.getCurrentTime();
+                    if (currentTime >= CONFIG.endTime || currentTime < CONFIG.startTime - 1) {
+                        restartSnippet();
+                    }
+                }
+            }, 100);
+        }
+
+        function stopLoopCheck() {
+            if (loopInterval) {
+                clearInterval(loopInterval);
+                loopInterval = null;
+            }
+        }
 
         musicButton.addEventListener("click", () => {
             if (!playerReady || !youtubePlayer) {
@@ -343,8 +364,7 @@
             if (musicPlaying) {
                 youtubePlayer.pauseVideo();
             } else {
-                youtubePlayer.seekTo(CONFIG.startTime, true);
-                youtubePlayer.playVideo();
+                restartSnippet();
             }
         });
 
@@ -464,7 +484,7 @@
         }
 
         /* =====================================================
-           KALP ÇİZGİSİ ÜZERİNDEKİ YAZILAR (HER ZAMAN ÇİZGİDE)
+           KALP ÇİZGİSİ ÜZERİNDEKİ YAZILAR
         ===================================================== */
         let wordParticles = [];
 
@@ -482,7 +502,6 @@
             }
 
             update(delta) {
-                // Yazılar kalbin çeperi boyunca yavaşça kayar
                 this.angle += this.speed * delta;
                 if (this.angle > Math.PI * 2) {
                     this.angle -= Math.PI * 2;
@@ -491,8 +510,6 @@
 
             draw(heartbeatScale) {
                 const geometry = getHeartGeometry();
-
-                // Kalp çizgisiyle birebir aynı koordinatı hesapla (Kalp attıkça yazılar çizgiyle büyüyüp küçülür)
                 const p = heartPoint(this.angle, geometry.scale * 1.06 * heartbeatScale);
                 const x = geometry.centerX + p.x;
                 const y = geometry.centerY + p.y;
@@ -555,154 +572,4 @@
         }
 
         /* =====================================================
-           EKRANIN ALTINDAKİ EKG NABIZ ÇİZGİSİ (VİDEODAKİ GİBİ)
-        ===================================================== */
-        function drawEKGLine(timeSeconds, heartbeatScale) {
-            ctx.save();
-            ctx.beginPath();
-            
-            const lineY = height - (width < 650 ? 25 : 40);
-            const speed = 120;
-            const xOffset = (timeSeconds * speed) % width;
-
-            ctx.moveTo(0, lineY);
-
-            for (let x = 0; x < width; x += 3) {
-                let y = lineY;
-                const distFromPulse = (x - xOffset + width) % width;
-
-                // Nabız vuruşu etkisi
-                if (distFromPulse > 0 && distFromPulse < 80) {
-                    const norm = distFromPulse / 80;
-                    const peak = Math.sin(norm * Math.PI * 4) * (20 * (heartbeatScale - 0.95));
-                    y -= peak;
-                }
-
-                ctx.lineTo(x, y);
-            }
-
-            ctx.strokeStyle = "rgba(255, 20, 75, 0.5)";
-            ctx.lineWidth = 1.5;
-            ctx.shadowColor = "rgba(255, 0, 80, 0.8)";
-            ctx.shadowBlur = 8;
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        /* =====================================================
-           ARKA PLAN PARÇACIKLARI
-        ===================================================== */
-        let backgroundParticles = [];
-
-        class BackgroundParticle {
-            constructor() {
-                this.reset(true);
-            }
-
-            reset(initial = false) {
-                this.x = Math.random() * width;
-                this.y = initial ? Math.random() * height : height + 8;
-                this.radius = 0.45 + Math.random() * 1.25;
-                this.speed = 5 + Math.random() * 11;
-                this.alpha = 0.08 + Math.random() * 0.30;
-                this.drift = (Math.random() - 0.5) * 4;
-            }
-
-            update(delta) {
-                this.y -= this.speed * delta;
-                this.x += this.drift * delta;
-
-                if (this.y < -8) this.reset(false);
-            }
-
-            draw() {
-                ctx.globalAlpha = this.alpha;
-                ctx.fillStyle = "#ff315f";
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function createBackgroundParticles() {
-            backgroundParticles = [];
-            const count = width < 650 ? 18 : 30;
-
-            for (let i = 0; i < count; i++) {
-                backgroundParticles.push(new BackgroundParticle());
-            }
-        }
-
-        /* =====================================================
-           RESIZE & REBUILD
-        ===================================================== */
-        let resizeTimer = null;
-
-        function rebuildScene() {
-            resizeCanvas();
-            spriteCache.clear();
-            createWordParticles();
-            createBackgroundParticles();
-        }
-
-        window.addEventListener("resize", () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(rebuildScene, 120);
-        });
-
-        rebuildScene();
-
-        /* =====================================================
-           ANİMASYON DÖNGÜSÜ
-        ===================================================== */
-        let lastTime = performance.now();
-        let animationId = null;
-
-        function animate(now) {
-            const timeSec = now / 1000;
-            const delta = Math.min((now - lastTime) / 1000, 0.033);
-            lastTime = now;
-
-            ctx.clearRect(0, 0, width, height);
-
-            const heartbeatScale = getHeartbeat(timeSec);
-
-            ctx.globalAlpha = 1;
-            drawHeartOutline(heartbeatScale);
-            drawEKGLine(timeSec, heartbeatScale);
-
-            for (const particle of backgroundParticles) {
-                particle.update(delta);
-                particle.draw();
-            }
-
-            for (const particle of wordParticles) {
-                particle.update(delta);
-                particle.draw(heartbeatScale);
-            }
-
-            ctx.globalAlpha = 1;
-            animationId = requestAnimationFrame(animate);
-        }
-
-        function startAnimation() {
-            if (animationId !== null) return;
-            lastTime = performance.now();
-            animationId = requestAnimationFrame(animate);
-        }
-
-        function stopAnimation() {
-            if (animationId === null) return;
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
-
-        document.addEventListener("visibilitychange", () => {
-            if (document.hidden) stopAnimation();
-            else startAnimation();
-        });
-
-        startAnimation();
-    </script>
-</body>
-</html>
+           EKRANIN ALTINDAKİ EKG NABIZ ÇİZ
