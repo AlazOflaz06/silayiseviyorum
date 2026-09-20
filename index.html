@@ -23,7 +23,7 @@
             color: #fff;
             font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
             background:
-                radial-gradient(circle at 50% 48%, rgba(82, 0, 28, 0.19) 0%, rgba(28, 0, 13, 0.08) 33%, rgba(3, 0, 4, 0) 62%),
+                radial-gradient(circle at 50% 48%, rgba(120, 0, 45, 0.28) 0%, rgba(38, 0, 18, 0.12) 35%, rgba(3, 0, 4, 0) 65%),
                 #030004;
         }
 
@@ -36,7 +36,7 @@
         }
 
         .left-top-badge,
-        .music-button {
+        .music-status {
             position: fixed;
             top: 20px;
             z-index: 20;
@@ -59,17 +59,10 @@
             letter-spacing: 1px;
         }
 
-        .music-button {
+        .music-status {
             right: 20px;
             font-size: 14px;
-            cursor: pointer;
             user-select: none;
-            transition: transform 0.2s ease, background 0.2s ease;
-        }
-
-        .music-button:hover {
-            transform: scale(1.03);
-            background: rgba(55, 7, 25, 0.78);
         }
 
         .badge-heart,
@@ -191,14 +184,14 @@
 
         @media (max-width: 650px) {
             .left-top-badge,
-            .music-button {
+            .music-status {
                 top: 12px;
                 padding: 8px 12px;
                 font-size: 11px;
             }
 
             .left-top-badge { left: 12px; }
-            .music-button { right: 12px; }
+            .music-status { right: 12px; }
 
             .content {
                 transform: translate(-50%, -42%);
@@ -228,9 +221,9 @@
         <span>Berke</span>
     </div>
 
-    <div class="music-button" id="musicButton">
+    <div class="music-status">
         <span class="music-icon">♫</span>
-        <span id="musicText">Müzik yükleniyor...</span>
+        <span id="musicText">Sıla İçin Çalıyor ♫</span>
     </div>
 
     <canvas id="heartCanvas"></canvas>
@@ -276,15 +269,10 @@
         };
 
         /* =====================================================
-           YOUTUBE MÜZİK - KESİNTİSİZ DÖNGÜ (LOOP)
+           OTOMATİK KESİNTİSİZ MÜZİK DÖNGÜSÜ
         ===================================================== */
-        const musicButton = document.getElementById("musicButton");
-        const musicText = document.getElementById("musicText");
-
         let youtubePlayer = null;
         let playerReady = false;
-        let musicPlaying = false;
-        let loopInterval = null;
 
         window.onYouTubeIframeAPIReady = function () {
             youtubePlayer = new YT.Player("youtubePlayer", {
@@ -296,7 +284,7 @@
                     disablekb: 1,
                     playsinline: 1,
                     rel: 0,
-                    autoplay: 0,
+                    autoplay: 1,
                     start: CONFIG.startTime,
                     end: CONFIG.endTime
                 },
@@ -304,69 +292,36 @@
                     onReady(event) {
                         playerReady = true;
                         event.target.setVolume(90);
-                        musicText.textContent = "Çalmak İçin Tıkla";
+                        event.target.seekTo(CONFIG.startTime, true);
+                        event.target.playVideo();
                     },
                     onStateChange(event) {
-                        if (event.data === YT.PlayerState.PLAYING) {
-                            musicPlaying = true;
-                            musicText.textContent = "Sıla İçin Çalıyor ♫";
-                            startLoopCheck();
-                        } else if (event.data === YT.PlayerState.PAUSED) {
-                            musicPlaying = false;
-                            musicText.textContent = "Çalmak İçin Tıkla";
-                            stopLoopCheck();
-                        } else if (event.data === YT.PlayerState.ENDED) {
-                            // Şarkı bittiği an hemen 138. saniyeye dön ve çal
-                            restartSnippet();
+                        if (event.data === YT.PlayerState.ENDED) {
+                            youtubePlayer.seekTo(CONFIG.startTime, true);
+                            youtubePlayer.playVideo();
                         }
-                    },
-                    onError() {
-                        musicPlaying = false;
-                        musicText.textContent = "Müzik açılamadı";
                     }
                 }
             });
         };
 
-        function restartSnippet() {
+        // Sürekli kontrol: 166. saniyeye ulaştığında otomatik 138. saniyeye dön
+        setInterval(() => {
             if (youtubePlayer && playerReady) {
-                youtubePlayer.seekTo(CONFIG.startTime, true);
+                const currentTime = youtubePlayer.getCurrentTime();
+                if (currentTime >= CONFIG.endTime || currentTime < CONFIG.startTime - 1) {
+                    youtubePlayer.seekTo(CONFIG.startTime, true);
+                    youtubePlayer.playVideo();
+                }
+            }
+        }, 150);
+
+        // Tarayıcı otomatik oynatma kısıtlamasını aşmak için ekrana dokunulduğunda müziği garanti başlatır
+        document.body.addEventListener('click', () => {
+            if (youtubePlayer && playerReady) {
                 youtubePlayer.playVideo();
             }
-        }
-
-        // 166. saniyeye ulaşıp ulaşmadığını her 100ms'de bir kontrol et
-        function startLoopCheck() {
-            stopLoopCheck();
-            loopInterval = setInterval(() => {
-                if (youtubePlayer && playerReady && musicPlaying) {
-                    const currentTime = youtubePlayer.getCurrentTime();
-                    if (currentTime >= CONFIG.endTime || currentTime < CONFIG.startTime - 1) {
-                        restartSnippet();
-                    }
-                }
-            }, 100);
-        }
-
-        function stopLoopCheck() {
-            if (loopInterval) {
-                clearInterval(loopInterval);
-                loopInterval = null;
-            }
-        }
-
-        musicButton.addEventListener("click", () => {
-            if (!playerReady || !youtubePlayer) {
-                musicText.textContent = "Müzik yükleniyor...";
-                return;
-            }
-
-            if (musicPlaying) {
-                youtubePlayer.pauseVideo();
-            } else {
-                restartSnippet();
-            }
-        });
+        }, { once: true });
 
         /* =====================================================
            CANVAS & KURULUM
@@ -411,7 +366,7 @@
         }
 
         function getHeartGeometry() {
-            const scale = Math.min(width / 44, height / 31.5);
+            const scale = Math.min(width / 40, height / 29);
 
             return {
                 centerX: width / 2,
@@ -484,38 +439,52 @@
         }
 
         /* =====================================================
-           KALP ÇİZGİSİ ÜZERİNDEKİ YAZILAR
+           KALBİN HER YERİNDE UÇUŞAN YAZI PARÇACIKLARI
         ===================================================== */
         let wordParticles = [];
 
         class WordParticle {
-            constructor(angle) {
-                this.angle = angle;
-                this.speed = 0.02 + Math.random() * 0.03;
-                this.opacity = 0.65 + Math.random() * 0.35;
+            constructor() {
+                this.reset(true);
+            }
+
+            reset(initial = false) {
+                this.angle = Math.random() * Math.PI * 2;
+                this.progress = initial ? Math.random() : 0;
+                this.speed = 0.08 + Math.random() * 0.06;
+                this.opacity = 0.5 + Math.random() * 0.5;
+                this.layer = 0.4 + Math.random() * 0.75; // Kalbin içi ve çeperi arasında rastgele katman
 
                 const text = randomFrom(CONFIG.words);
                 const color = randomFrom(CONFIG.colors);
-                const size = width < 650 ? 12 : 15;
+                const size = width < 650 ? (10 + Math.floor(Math.random() * 4)) : (12 + Math.floor(Math.random() * 5));
 
                 this.sprite = makeWordSprite(text, size, color);
             }
 
             update(delta) {
-                this.angle += this.speed * delta;
-                if (this.angle > Math.PI * 2) {
-                    this.angle -= Math.PI * 2;
+                this.progress += this.speed * delta;
+                if (this.progress >= 1) {
+                    this.reset(false);
                 }
             }
 
             draw(heartbeatScale) {
                 const geometry = getHeartGeometry();
-                const p = heartPoint(this.angle, geometry.scale * 1.06 * heartbeatScale);
+                
+                // Kalbin her tarafını kaplaması için katman hesabı
+                const currentScale = geometry.scale * this.layer * heartbeatScale;
+                const p = heartPoint(this.angle, currentScale);
+
                 const x = geometry.centerX + p.x;
                 const y = geometry.centerY + p.y;
 
+                const fadeIn = Math.min(1, this.progress * 4);
+                const fadeOut = Math.min(1, (1 - this.progress) * 4);
+                const alpha = this.opacity * fadeIn * fadeOut;
+
                 ctx.save();
-                ctx.globalAlpha = this.opacity;
+                ctx.globalAlpha = alpha;
                 ctx.drawImage(
                     this.sprite.canvas,
                     x - this.sprite.width / 2,
@@ -529,18 +498,17 @@
 
         function createWordParticles() {
             wordParticles = [];
-            const count = width < 650 ? 45 : 70;
+            const count = width < 650 ? 90 : 160; // Tüm kalbi dolduracak sayı
             for (let i = 0; i < count; i++) {
-                const angle = (i / count) * Math.PI * 2;
-                wordParticles.push(new WordParticle(angle));
+                wordParticles.push(new WordParticle());
             }
         }
 
         /* =====================================================
-           KALP ANA ÇİZGİSİ
+           PARLAK KALP ÇİZGİSİ
         ===================================================== */
-        const heartAngles = Array.from({ length: 200 }, (_, i) => (
-            (i / 199) * Math.PI * 2
+        const heartAngles = Array.from({ length: 220 }, (_, i) => (
+            (i / 219) * Math.PI * 2
         ));
 
         function drawHeartOutline(heartbeatScale) {
@@ -552,7 +520,7 @@
             for (let i = 0; i < heartAngles.length; i++) {
                 const p = heartPoint(
                     heartAngles[i],
-                    geometry.scale * 1.06 * heartbeatScale
+                    geometry.scale * 1.08 * heartbeatScale
                 );
 
                 const x = geometry.centerX + p.x;
@@ -563,13 +531,162 @@
             }
 
             ctx.closePath();
-            ctx.strokeStyle = "rgba(255, 35, 87, 0.40)";
-            ctx.lineWidth = 1.8;
-            ctx.shadowColor = "rgba(255, 0, 72, 0.9)";
-            ctx.shadowBlur = 10;
+            ctx.strokeStyle = "rgba(255, 35, 87, 0.65)";
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = "rgba(255, 0, 72, 0.95)";
+            ctx.shadowBlur = 14;
             ctx.stroke();
             ctx.restore();
         }
 
         /* =====================================================
-           EKRANIN ALTINDAKİ EKG NABIZ ÇİZ
+           EKRANIN ALTINDAKİ EKG NABIZ ÇİZGİSİ
+        ===================================================== */
+        function drawEKGLine(timeSeconds, heartbeatScale) {
+            ctx.save();
+            ctx.beginPath();
+            
+            const lineY = height - (width < 650 ? 25 : 40);
+            const speed = 120;
+            const xOffset = (timeSeconds * speed) % width;
+
+            ctx.moveTo(0, lineY);
+
+            for (let x = 0; x < width; x += 3) {
+                let y = lineY;
+                const distFromPulse = (x - xOffset + width) % width;
+
+                if (distFromPulse > 0 && distFromPulse < 80) {
+                    const norm = distFromPulse / 80;
+                    const peak = Math.sin(norm * Math.PI * 4) * (20 * (heartbeatScale - 0.95));
+                    y -= peak;
+                }
+
+                ctx.lineTo(x, y);
+            }
+
+            ctx.strokeStyle = "rgba(255, 20, 75, 0.55)";
+            ctx.lineWidth = 1.8;
+            ctx.shadowColor = "rgba(255, 0, 80, 0.85)";
+            ctx.shadowBlur = 9;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        /* =====================================================
+           ARKA PLAN PARÇACIKLARI
+        ===================================================== */
+        let backgroundParticles = [];
+
+        class BackgroundParticle {
+            constructor() {
+                this.reset(true);
+            }
+
+            reset(initial = false) {
+                this.x = Math.random() * width;
+                this.y = initial ? Math.random() * height : height + 8;
+                this.radius = 0.45 + Math.random() * 1.25;
+                this.speed = 5 + Math.random() * 11;
+                this.alpha = 0.08 + Math.random() * 0.30;
+                this.drift = (Math.random() - 0.5) * 4;
+            }
+
+            update(delta) {
+                this.y -= this.speed * delta;
+                this.x += this.drift * delta;
+
+                if (this.y < -8) this.reset(false);
+            }
+
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = "#ff315f";
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function createBackgroundParticles() {
+            backgroundParticles = [];
+            const count = width < 650 ? 18 : 30;
+
+            for (let i = 0; i < count; i++) {
+                backgroundParticles.push(new BackgroundParticle());
+            }
+        }
+
+        /* =====================================================
+           RESIZE & REBUILD
+        ===================================================== */
+        let resizeTimer = null;
+
+        function rebuildScene() {
+            resizeCanvas();
+            spriteCache.clear();
+            createWordParticles();
+            createBackgroundParticles();
+        }
+
+        window.addEventListener("resize", () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(rebuildScene, 120);
+        });
+
+        rebuildScene();
+
+        /* =====================================================
+           ANİMASYON DÖNGÜSÜ
+        ===================================================== */
+        let lastTime = performance.now();
+        let animationId = null;
+
+        function animate(now) {
+            const timeSec = now / 1000;
+            const delta = Math.min((now - lastTime) / 1000, 0.033);
+            lastTime = now;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const heartbeatScale = getHeartbeat(timeSec);
+
+            ctx.globalAlpha = 1;
+            drawHeartOutline(heartbeatScale);
+            drawEKGLine(timeSec, heartbeatScale);
+
+            for (const particle of backgroundParticles) {
+                particle.update(delta);
+                particle.draw();
+            }
+
+            for (const particle of wordParticles) {
+                particle.update(delta);
+                particle.draw(heartbeatScale);
+            }
+
+            ctx.globalAlpha = 1;
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function startAnimation() {
+            if (animationId !== null) return;
+            lastTime = performance.now();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function stopAnimation() {
+            if (animationId === null) return;
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) stopAnimation();
+            else startAnimation();
+        });
+
+        startAnimation();
+    </script>
+</body>
+</html>
