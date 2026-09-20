@@ -23,7 +23,7 @@
             color: #fff;
             font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
             background:
-                radial-gradient(circle at 50% 48%, rgba(120, 0, 45, 0.28) 0%, rgba(38, 0, 18, 0.12) 35%, rgba(3, 0, 4, 0) 65%),
+                radial-gradient(circle at 50% 48%, rgba(140, 0, 50, 0.32) 0%, rgba(38, 0, 18, 0.15) 35%, rgba(3, 0, 4, 0) 65%),
                 #030004;
         }
 
@@ -36,7 +36,7 @@
         }
 
         .left-top-badge,
-        .music-status {
+        .music-button {
             position: fixed;
             top: 20px;
             z-index: 20;
@@ -44,12 +44,12 @@
             align-items: center;
             gap: 8px;
             padding: 10px 20px;
-            border: 1px solid rgba(255, 45, 95, 0.46);
+            border: 1px solid rgba(255, 45, 95, 0.5);
             border-radius: 999px;
-            background: rgba(14, 4, 10, 0.66);
+            background: rgba(14, 4, 10, 0.75);
             backdrop-filter: blur(12px);
             color: #ffd0da;
-            box-shadow: 0 0 14px rgba(255, 0, 75, 0.17);
+            box-shadow: 0 0 15px rgba(255, 0, 75, 0.25);
         }
 
         .left-top-badge {
@@ -59,10 +59,17 @@
             letter-spacing: 1px;
         }
 
-        .music-status {
+        .music-button {
             right: 20px;
             font-size: 14px;
+            cursor: pointer;
             user-select: none;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .music-button:hover {
+            transform: scale(1.04);
+            background: rgba(65, 8, 30, 0.85);
         }
 
         .badge-heart,
@@ -108,7 +115,7 @@
                 0 0 11px rgba(255, 23, 79, 0.9),
                 0 0 25px rgba(255, 0, 72, 0.5);
             will-change: transform;
-            animation: titleBeat 1.1s linear infinite;
+            animation: titleBeat 1.05s linear infinite;
         }
 
         .subtitle {
@@ -176,22 +183,22 @@
 
         @keyframes titleBeat {
             0%, 100% { transform: scale(1); }
-            5% { transform: scale(1.02); }
+            5% { transform: scale(1.03); }
             10% { transform: scale(1); }
-            18% { transform: scale(1.01); }
+            18% { transform: scale(1.015); }
             24% { transform: scale(1); }
         }
 
         @media (max-width: 650px) {
             .left-top-badge,
-            .music-status {
+            .music-button {
                 top: 12px;
                 padding: 8px 12px;
                 font-size: 11px;
             }
 
             .left-top-badge { left: 12px; }
-            .music-status { right: 12px; }
+            .music-button { right: 12px; }
 
             .content {
                 transform: translate(-50%, -42%);
@@ -221,9 +228,9 @@
         <span>Berke</span>
     </div>
 
-    <div class="music-status">
+    <div class="music-button" id="musicButton">
         <span class="music-icon">♫</span>
-        <span id="musicText">Sıla İçin Çalıyor ♫</span>
+        <span id="musicText">Çalmak İçin Tıkla</span>
     </div>
 
     <canvas id="heartCanvas"></canvas>
@@ -259,15 +266,19 @@
                 "Her Şeyim",
                 "Bir Tanem"
             ],
-            colors: ["#ff2457", "#ff416d", "#ff6b89"],
+            colors: ["#ff1a53", "#ff3366", "#ff527b", "#ff7395"],
             youtubeVideoId: "66A_3uwuZ_I",
-            startTime: 138,
-            endTime: 166
+            startTime: 138, // 2:18
+            endTime: 166    // 2:46
         };
 
-        /* MÜZİK DÖNGÜSÜ */
+        /* MÜZİK DÖNGÜSÜ & KONTROLÜ */
+        const musicButton = document.getElementById("musicButton");
+        const musicText = document.getElementById("musicText");
+
         let youtubePlayer = null;
         let playerReady = false;
+        let isPlaying = false;
 
         window.onYouTubeIframeAPIReady = function () {
             youtubePlayer = new YT.Player("youtubePlayer", {
@@ -286,37 +297,57 @@
                 events: {
                     onReady(event) {
                         playerReady = true;
-                        event.target.setVolume(90);
-                        event.target.seekTo(CONFIG.startTime, true);
-                        event.target.playVideo();
+                        event.target.setVolume(100);
+                        playMusic();
                     },
                     onStateChange(event) {
-                        if (event.data === YT.PlayerState.ENDED) {
-                            youtubePlayer.seekTo(CONFIG.startTime, true);
-                            youtubePlayer.playVideo();
+                        if (event.data === YT.PlayerState.PLAYING) {
+                            isPlaying = true;
+                            musicText.textContent = "Sıla İçin Çalıyor ♫";
+                        } else if (event.data === YT.PlayerState.PAUSED) {
+                            isPlaying = false;
+                            musicText.textContent = "Çalmak İçin Tıkla";
+                        } else if (event.data === YT.PlayerState.ENDED) {
+                            playMusic();
                         }
                     }
                 }
             });
         };
 
-        setInterval(() => {
+        function playMusic() {
             if (youtubePlayer && playerReady) {
+                youtubePlayer.seekTo(CONFIG.startTime, true);
+                youtubePlayer.playVideo();
+            }
+        }
+
+        setInterval(() => {
+            if (youtubePlayer && playerReady && isPlaying) {
                 const currentTime = youtubePlayer.getCurrentTime();
                 if (currentTime >= CONFIG.endTime || currentTime < CONFIG.startTime - 1) {
-                    youtubePlayer.seekTo(CONFIG.startTime, true);
-                    youtubePlayer.playVideo();
+                    playMusic();
                 }
             }
         }, 150);
 
+        // Ekranın herhangi bir yerine tıklanırsa müziği başlatır (Kısıtlamaları aşmak için)
         document.body.addEventListener('click', () => {
-            if (youtubePlayer && playerReady) {
-                youtubePlayer.playVideo();
+            if (!isPlaying) {
+                playMusic();
             }
-        }, { once: true });
+        });
 
-        /* CANVAS & HIZLANDIRILMIŞ KALP ATIŞI */
+        musicButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isPlaying) {
+                youtubePlayer.pauseVideo();
+            } else {
+                playMusic();
+            }
+        });
+
+        /* CANVAS VE HIZLANDIRILMIŞ / YÜKSEK GENLİKLİ KALP ATIŞI */
         const canvas = document.getElementById("heartCanvas");
         const ctx = canvas.getContext("2d", { alpha: true });
 
@@ -354,7 +385,7 @@
         }
 
         function getHeartGeometry() {
-            const scale = Math.min(width / 40, height / 29);
+            const scale = Math.min(width / 38, height / 28);
             return {
                 centerX: width / 2,
                 centerY: height / 2 - (width < 650 ? 4 : 12),
@@ -362,7 +393,7 @@
             };
         }
 
-        // Kalp Atış Hızı Bir Tık Artırıldı (cycle = 1.1s)
+        // Kalp Atış Genliği Artırıldı (Genişleme mesafesi yükseltildi)
         function pulseWindow(phase, start, end, amplitude) {
             if (phase < start || phase > end) return 0;
             const t = (phase - start) / (end - start);
@@ -371,11 +402,12 @@
         }
 
         function getHeartbeat(timeSeconds) {
-            const cycle = 1.1; 
+            const cycle = 1.05; 
             const phase = (timeSeconds % cycle) / cycle;
 
-            const first = pulseWindow(phase, 0.015, 0.13, 0.05);
-            const second = pulseWindow(phase, 0.17, 0.275, 0.025);
+            // Genlikler 0.12 ve 0.06 seviyesine çıkarıldı (Atış mesafesi çok belirgin oldu)
+            const first = pulseWindow(phase, 0.015, 0.14, 0.12);
+            const second = pulseWindow(phase, 0.18, 0.29, 0.06);
 
             return 1 + first + second;
         }
@@ -403,8 +435,8 @@
             drawCtx.textAlign = "center";
             drawCtx.textBaseline = "middle";
             drawCtx.fillStyle = color;
-            drawCtx.shadowColor = "rgba(255, 15, 75, 0.9)";
-            drawCtx.shadowBlur = 6 * ratio;
+            drawCtx.shadowColor = "rgba(255, 15, 75, 0.95)";
+            drawCtx.shadowBlur = 7 * ratio;
             drawCtx.fillText(text, off.width / 2, off.height / 2);
 
             const sprite = {
@@ -421,25 +453,23 @@
             return array[Math.floor(Math.random() * array.length)];
         }
 
-        /* ÇİZGİYE BİREBİR YAPIŞIK VE SOLDAN SAĞA DÖNEN KELİMELER */
+        /* ÇİZGİYİ TAMAMEEN KAPLAYAN AŞIRI YOĞUN KELİMELER */
         let wordParticles = [];
 
         class WordParticle {
             constructor(angle) {
                 this.angle = angle;
-                // Soldan sağa çizgiyi takip eden hız
-                this.speed = 0.25 + Math.random() * 0.15; 
-                this.opacity = 0.75 + Math.random() * 0.25;
+                this.speed = 0.20 + Math.random() * 0.12; 
+                this.opacity = 0.82 + Math.random() * 0.18;
 
                 const text = randomFrom(CONFIG.words);
                 const color = randomFrom(CONFIG.colors);
-                const size = width < 650 ? 12 : 15;
+                const size = width < 650 ? (11 + Math.floor(Math.random() * 3)) : (14 + Math.floor(Math.random() * 4));
 
                 this.sprite = makeWordSprite(text, size, color);
             }
 
             update(delta) {
-                // Çizgi üzerinde soldan sağa akış
                 this.angle += this.speed * delta;
                 if (this.angle > Math.PI * 2) {
                     this.angle -= Math.PI * 2;
@@ -448,8 +478,6 @@
 
             draw(heartbeatScale) {
                 const geometry = getHeartGeometry();
-                
-                // Tam kalp çizgisinin üzerine yapışık (1.08 katsayısı çizgi hizasıdır)
                 const p = heartPoint(this.angle, geometry.scale * 1.08 * heartbeatScale);
 
                 const x = geometry.centerX + p.x;
@@ -470,7 +498,8 @@
 
         function createWordParticles() {
             wordParticles = [];
-            const count = width < 650 ? 40 : 65; 
+            // Sayı 140 ila 220 seviyesine çıkarıldı (Aşırı yoğun görünüm)
+            const count = width < 650 ? 140 : 220; 
             for (let i = 0; i < count; i++) {
                 const angle = (i / count) * Math.PI * 2;
                 wordParticles.push(new WordParticle(angle));
@@ -478,8 +507,8 @@
         }
 
         /* PARLAK KALP ÇİZGİSİ */
-        const heartAngles = Array.from({ length: 220 }, (_, i) => (
-            (i / 219) * Math.PI * 2
+        const heartAngles = Array.from({ length: 240 }, (_, i) => (
+            (i / 239) * Math.PI * 2
         ));
 
         function drawHeartOutline(heartbeatScale) {
@@ -502,10 +531,10 @@
             }
 
             ctx.closePath();
-            ctx.strokeStyle = "rgba(255, 35, 87, 0.65)";
-            ctx.lineWidth = 2.5;
-            ctx.shadowColor = "rgba(255, 0, 72, 0.95)";
-            ctx.shadowBlur = 14;
+            ctx.strokeStyle = "rgba(255, 35, 87, 0.75)";
+            ctx.lineWidth = 3;
+            ctx.shadowColor = "rgba(255, 0, 72, 1)";
+            ctx.shadowBlur = 16;
             ctx.stroke();
             ctx.restore();
         }
@@ -516,7 +545,7 @@
             ctx.beginPath();
             
             const lineY = height - (width < 650 ? 25 : 40);
-            const speed = 150; // Hızlandırılmış alt nabız çizgisi
+            const speed = 160; 
             const xOffset = (timeSeconds * speed) % width;
 
             ctx.moveTo(0, lineY);
@@ -527,17 +556,17 @@
 
                 if (distFromPulse > 0 && distFromPulse < 80) {
                     const norm = distFromPulse / 80;
-                    const peak = Math.sin(norm * Math.PI * 4) * (22 * (heartbeatScale - 0.95));
+                    const peak = Math.sin(norm * Math.PI * 4) * (26 * (heartbeatScale - 0.95));
                     y -= peak;
                 }
 
                 ctx.lineTo(x, y);
             }
 
-            ctx.strokeStyle = "rgba(255, 20, 75, 0.55)";
-            ctx.lineWidth = 1.8;
-            ctx.shadowColor = "rgba(255, 0, 80, 0.85)";
-            ctx.shadowBlur = 9;
+            ctx.strokeStyle = "rgba(255, 20, 75, 0.6)";
+            ctx.lineWidth = 2;
+            ctx.shadowColor = "rgba(255, 0, 80, 0.9)";
+            ctx.shadowBlur = 10;
             ctx.stroke();
             ctx.restore();
         }
