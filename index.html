@@ -108,7 +108,7 @@
                 0 0 11px rgba(255, 23, 79, 0.9),
                 0 0 25px rgba(255, 0, 72, 0.5);
             will-change: transform;
-            animation: titleBeat 1.35s linear infinite;
+            animation: titleBeat 1.1s linear infinite;
         }
 
         .subtitle {
@@ -176,9 +176,9 @@
 
         @keyframes titleBeat {
             0%, 100% { transform: scale(1); }
-            5% { transform: scale(1.018); }
+            5% { transform: scale(1.02); }
             10% { transform: scale(1); }
-            18% { transform: scale(1.009); }
+            18% { transform: scale(1.01); }
             24% { transform: scale(1); }
         }
 
@@ -249,9 +249,6 @@
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
-        /* =====================================================
-           TEMEL AYARLAR
-        ===================================================== */
         const CONFIG = {
             words: [
                 "Sıla",
@@ -264,13 +261,11 @@
             ],
             colors: ["#ff2457", "#ff416d", "#ff6b89"],
             youtubeVideoId: "66A_3uwuZ_I",
-            startTime: 138, // 2:18
-            endTime: 166    // 2:46
+            startTime: 138,
+            endTime: 166
         };
 
-        /* =====================================================
-           OTOMATİK KESİNTİSİZ MÜZİK DÖNGÜSÜ
-        ===================================================== */
+        /* MÜZİK DÖNGÜSÜ */
         let youtubePlayer = null;
         let playerReady = false;
 
@@ -305,7 +300,6 @@
             });
         };
 
-        // Sürekli kontrol: 166. saniyeye ulaştığında otomatik 138. saniyeye dön
         setInterval(() => {
             if (youtubePlayer && playerReady) {
                 const currentTime = youtubePlayer.getCurrentTime();
@@ -316,16 +310,13 @@
             }
         }, 150);
 
-        // Tarayıcı otomatik oynatma kısıtlamasını aşmak için ekrana dokunulduğunda müziği garanti başlatır
         document.body.addEventListener('click', () => {
             if (youtubePlayer && playerReady) {
                 youtubePlayer.playVideo();
             }
         }, { once: true });
 
-        /* =====================================================
-           CANVAS & KURULUM
-        ===================================================== */
+        /* CANVAS & HIZLANDIRILMIŞ KALP ATIŞI */
         const canvas = document.getElementById("heartCanvas");
         const ctx = canvas.getContext("2d", { alpha: true });
 
@@ -349,9 +340,6 @@
             ctx.imageSmoothingEnabled = true;
         }
 
-        /* =====================================================
-           KALP FORMÜLÜ & GEOMETRİ
-        ===================================================== */
         function heartPoint(angle, scale) {
             const x = 16 * Math.pow(Math.sin(angle), 3);
             const y = 13 * Math.cos(angle)
@@ -367,7 +355,6 @@
 
         function getHeartGeometry() {
             const scale = Math.min(width / 40, height / 29);
-
             return {
                 centerX: width / 2,
                 centerY: height / 2 - (width < 650 ? 4 : 12),
@@ -375,9 +362,7 @@
             };
         }
 
-        /* =====================================================
-           RİTMİK KALP ATIŞI
-        ===================================================== */
+        // Kalp Atış Hızı Bir Tık Artırıldı (cycle = 1.1s)
         function pulseWindow(phase, start, end, amplitude) {
             if (phase < start || phase > end) return 0;
             const t = (phase - start) / (end - start);
@@ -386,18 +371,16 @@
         }
 
         function getHeartbeat(timeSeconds) {
-            const cycle = 1.35;
+            const cycle = 1.1; 
             const phase = (timeSeconds % cycle) / cycle;
 
-            const first = pulseWindow(phase, 0.015, 0.13, 0.045);
-            const second = pulseWindow(phase, 0.17, 0.275, 0.020);
+            const first = pulseWindow(phase, 0.015, 0.13, 0.05);
+            const second = pulseWindow(phase, 0.17, 0.275, 0.025);
 
             return 1 + first + second;
         }
 
-        /* =====================================================
-           SPRITE CACHE
-        ===================================================== */
+        /* SPRITE CACHE */
         const spriteCache = new Map();
 
         function makeWordSprite(text, fontSize, color) {
@@ -408,7 +391,7 @@
             const off = document.createElement("canvas");
             const offCtx = off.getContext("2d");
 
-            offCtx.font = `600 ${fontSize * ratio}px "Segoe UI", sans-serif`;
+            offCtx.font = `bold ${fontSize * ratio}px "Segoe UI", sans-serif`;
             const measured = offCtx.measureText(text).width;
             const pad = 10 * ratio;
 
@@ -416,12 +399,12 @@
             off.height = Math.ceil(fontSize * ratio * 2.05);
 
             const drawCtx = off.getContext("2d");
-            drawCtx.font = `600 ${fontSize * ratio}px "Segoe UI", sans-serif`;
+            drawCtx.font = `bold ${fontSize * ratio}px "Segoe UI", sans-serif`;
             drawCtx.textAlign = "center";
             drawCtx.textBaseline = "middle";
             drawCtx.fillStyle = color;
-            drawCtx.shadowColor = "rgba(255, 15, 75, 0.85)";
-            drawCtx.shadowBlur = 5 * ratio;
+            drawCtx.shadowColor = "rgba(255, 15, 75, 0.9)";
+            drawCtx.shadowBlur = 6 * ratio;
             drawCtx.fillText(text, off.width / 2, off.height / 2);
 
             const sprite = {
@@ -438,53 +421,42 @@
             return array[Math.floor(Math.random() * array.length)];
         }
 
-        /* =====================================================
-           KALBİN HER YERİNDE UÇUŞAN YAZI PARÇACIKLARI
-        ===================================================== */
+        /* ÇİZGİYE BİREBİR YAPIŞIK VE SOLDAN SAĞA DÖNEN KELİMELER */
         let wordParticles = [];
 
         class WordParticle {
-            constructor() {
-                this.reset(true);
-            }
-
-            reset(initial = false) {
-                this.angle = Math.random() * Math.PI * 2;
-                this.progress = initial ? Math.random() : 0;
-                this.speed = 0.08 + Math.random() * 0.06;
-                this.opacity = 0.5 + Math.random() * 0.5;
-                this.layer = 0.4 + Math.random() * 0.75; // Kalbin içi ve çeperi arasında rastgele katman
+            constructor(angle) {
+                this.angle = angle;
+                // Soldan sağa çizgiyi takip eden hız
+                this.speed = 0.25 + Math.random() * 0.15; 
+                this.opacity = 0.75 + Math.random() * 0.25;
 
                 const text = randomFrom(CONFIG.words);
                 const color = randomFrom(CONFIG.colors);
-                const size = width < 650 ? (10 + Math.floor(Math.random() * 4)) : (12 + Math.floor(Math.random() * 5));
+                const size = width < 650 ? 12 : 15;
 
                 this.sprite = makeWordSprite(text, size, color);
             }
 
             update(delta) {
-                this.progress += this.speed * delta;
-                if (this.progress >= 1) {
-                    this.reset(false);
+                // Çizgi üzerinde soldan sağa akış
+                this.angle += this.speed * delta;
+                if (this.angle > Math.PI * 2) {
+                    this.angle -= Math.PI * 2;
                 }
             }
 
             draw(heartbeatScale) {
                 const geometry = getHeartGeometry();
                 
-                // Kalbin her tarafını kaplaması için katman hesabı
-                const currentScale = geometry.scale * this.layer * heartbeatScale;
-                const p = heartPoint(this.angle, currentScale);
+                // Tam kalp çizgisinin üzerine yapışık (1.08 katsayısı çizgi hizasıdır)
+                const p = heartPoint(this.angle, geometry.scale * 1.08 * heartbeatScale);
 
                 const x = geometry.centerX + p.x;
                 const y = geometry.centerY + p.y;
 
-                const fadeIn = Math.min(1, this.progress * 4);
-                const fadeOut = Math.min(1, (1 - this.progress) * 4);
-                const alpha = this.opacity * fadeIn * fadeOut;
-
                 ctx.save();
-                ctx.globalAlpha = alpha;
+                ctx.globalAlpha = this.opacity;
                 ctx.drawImage(
                     this.sprite.canvas,
                     x - this.sprite.width / 2,
@@ -498,15 +470,14 @@
 
         function createWordParticles() {
             wordParticles = [];
-            const count = width < 650 ? 90 : 160; // Tüm kalbi dolduracak sayı
+            const count = width < 650 ? 40 : 65; 
             for (let i = 0; i < count; i++) {
-                wordParticles.push(new WordParticle());
+                const angle = (i / count) * Math.PI * 2;
+                wordParticles.push(new WordParticle(angle));
             }
         }
 
-        /* =====================================================
-           PARLAK KALP ÇİZGİSİ
-        ===================================================== */
+        /* PARLAK KALP ÇİZGİSİ */
         const heartAngles = Array.from({ length: 220 }, (_, i) => (
             (i / 219) * Math.PI * 2
         ));
@@ -539,15 +510,13 @@
             ctx.restore();
         }
 
-        /* =====================================================
-           EKRANIN ALTINDAKİ EKG NABIZ ÇİZGİSİ
-        ===================================================== */
+        /* EKG ALT NABIZ ÇİZGİSİ */
         function drawEKGLine(timeSeconds, heartbeatScale) {
             ctx.save();
             ctx.beginPath();
             
             const lineY = height - (width < 650 ? 25 : 40);
-            const speed = 120;
+            const speed = 150; // Hızlandırılmış alt nabız çizgisi
             const xOffset = (timeSeconds * speed) % width;
 
             ctx.moveTo(0, lineY);
@@ -558,7 +527,7 @@
 
                 if (distFromPulse > 0 && distFromPulse < 80) {
                     const norm = distFromPulse / 80;
-                    const peak = Math.sin(norm * Math.PI * 4) * (20 * (heartbeatScale - 0.95));
+                    const peak = Math.sin(norm * Math.PI * 4) * (22 * (heartbeatScale - 0.95));
                     y -= peak;
                 }
 
@@ -573,9 +542,7 @@
             ctx.restore();
         }
 
-        /* =====================================================
-           ARKA PLAN PARÇACIKLARI
-        ===================================================== */
+        /* ARKA PLAN PARÇACIKLARI */
         let backgroundParticles = [];
 
         class BackgroundParticle {
@@ -617,9 +584,7 @@
             }
         }
 
-        /* =====================================================
-           RESIZE & REBUILD
-        ===================================================== */
+        /* RESIZE & REBUILD */
         let resizeTimer = null;
 
         function rebuildScene() {
@@ -636,9 +601,7 @@
 
         rebuildScene();
 
-        /* =====================================================
-           ANİMASYON DÖNGÜSÜ
-        ===================================================== */
+        /* ANİMASYON DÖNGÜSÜ */
         let lastTime = performance.now();
         let animationId = null;
 
