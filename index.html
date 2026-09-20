@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sıla ❤️ Berke</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #050005;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #fff;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Sol Üst Köşe - Sıla ❤️ Berke */
+        .left-top-badge {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 46, 99, 0.5);
+            padding: 10px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffb3c1;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
+            letter-spacing: 1px;
+        }
+
+        /* Sağ Üst Müzik Kutusu */
+        .top-badge {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 46, 99, 0.4);
+            padding: 10px 18px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #ffb3c1;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.2);
+            transition: all 0.3s ease;
+        }
+        .top-badge:hover {
+            background: rgba(255, 46, 99, 0.25);
+            transform: scale(1.05);
+        }
+        .music-icon {
+            animation: spin 4s linear infinite;
+        }
+
+        /* Merkez İsim ve Mesaj Kutusu */
+        .content-box {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .center-title {
+            font-size: 4.5rem;
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: #ff2e63;
+            text-shadow: 0 0 20px #ff0055, 0 0 40px #ff0055, 0 0 60px #ff0055;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            color: #ffc2d1;
+            letter-spacing: 3px;
+            opacity: 0.9;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        .message-card {
+            background: rgba(15, 2, 10, 0.7);
+            border: 1px solid rgba(255, 46, 99, 0.4);
+            padding: 18px 30px;
+            border-radius: 14px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.3);
+            max-width: 480px;
+        }
+        .message-card p {
+            font-size: 1.1rem;
+            color: #ffe6ea;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+        .message-card span {
+            display: block;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #ff4d6d;
+            font-weight: 600;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sol Üst: Sıla ❤️ Berke -->
+    <div class="left-top-badge">
+        <span>Sıla ❤️ Berke</span>
+    </div>
+
+    <!-- Sağ Üst: Müzik Kontrolü -->
+    <div class="top-badge" id="musicBtn">
+        <span class="music-icon">🎵</span>
+        <span id="musicText">Çalmak İçin Tıkla</span>
+    </div>
+
+    <!-- Kalp Animasyonu Canvas -->
+    <canvas id="heartCanvas"></canvas>
+
+    <!-- Ekran Ortasındaki Metinler -->
+    <div class="content-box">
+        <h1 class="center-title">SILA</h1>
+        <div class="subtitle">Sen Benim En Güzel Hikayemsin</div>
+
+        <div class="message-card">
+            <p>"Herkes çiçek alır... Ben senin için dünyadaki en güzel kalbi kodladım."</p>
+            <span>✨ İyi Ki Varsın Sıla ✨</span>
+        </div>
+    </div>
+
+    <!-- Arka Plan Müziği -->
+    <audio id="bgMusic" loop src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=romantic-ambient-111554.mp3"></audio>
+
+    <script>
+        // Müzik Kontrolü
+        const audio = document.getElementById('bgMusic');
+        const musicBtn = document.getElementById('musicBtn');
+        const musicText = document.getElementById('musicText');
+        let isPlaying = false;
+
+        musicBtn.addEventListener('click', () => {
+            if (isPlaying) {
+                audio.pause();
+                musicText.textContent = "Müziği Başlat 🎵";
+            } else {
+                audio.play();
+                musicText.textContent = "Sıla İçin Çalıyor 🎶";
+            }
+            isPlaying = !isPlaying;
+        });
+
+        // Kalp Animasyonu
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        // Sıla için özel dinamik kelimeler
+        const words = [
+            "SILA", "SILA & BERKE", "SENİ SEVİYORUM", "SÖZ", "ÖMRÜM",
+            "AŞKIM", "MY LOVE", "FOREVER", "MELEĞİM", "SONSUZUM",
+            "İYİ Kİ VARSIN", "BİTANEM", "SENSİN", "SILA ❤️"
+        ];
+
+        function heartEquation(t, scale) {
+            const x = 16 * Math.pow(Math.sin(t), 3);
+            const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+            return {
+                x: x * scale,
+                y: y * scale
+            };
+        }
+
+        class Particle {
+            constructor() {
+                this.t = Math.random() * Math.PI * 2;
+                this.speed = 0.005 + Math.random() * 0.01;
+                this.scale = 12 + Math.random() * 3.5;
+                this.isText = Math.random() < 0.35; // %35 oranında metin parçacığı
+                this.text = words[Math.floor(Math.random() * words.length)];
+                this.fontSize = Math.floor(Math.random() * 6) + 11;
+                this.opacity = Math.random() * 0.85 + 0.15;
+            }
+
+            update(beatScale) {
+                this.t += this.speed;
+                const pos = heartEquation(this.t, this.scale * beatScale);
+                this.x = width / 2 + pos.x;
+                this.y = height / 2 - 60 + pos.y;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                if (this.isText) {
+                    ctx.font = `bold ${this.fontSize}px 'Segoe UI', sans-serif`;
+                    ctx.fillStyle = '#ff4d6d';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#ff0055';
+                    ctx.fillText(this.text, this.x, this.y);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 1.6, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ff2e63';
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = '#ff0055';
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        const particleCount = 520;
+        const particles = [];
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+
+        let time = 0;
+        function animate() {
+            ctx.fillStyle = 'rgba(5, 0, 5, 0.25)';
+            ctx.fillRect(0, 0, width, height);
+
+            time += 0.04;
+            const beatScale = 1 + Math.sin(time * 2) * 0.07 + Math.pow(Math.sin(time * 4), 2) * 0.03;
+
+            particles.forEach(p => {
+                p.update(beatScale);
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
